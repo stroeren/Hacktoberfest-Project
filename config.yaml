@@ -1,0 +1,56 @@
+model:
+  # Gemma 4 is gated: accept the license on its Hugging Face page and run `hf auth login` first.
+  # Swap for a smaller/larger Gemma 4 variant depending on your GPU.
+  base_model: google/gemma-4-E4B-it
+  load_in_4bit: true          # QLoRA; set false if you have lots of VRAM
+
+riot:
+  # API key comes from the RIOT_API_KEY environment variable, never from this file.
+  platform: na1               # na1, euw1, eun1, kr, br1, la1, la2, oc1, tr1, ru, jp1, ...
+  region: americas            # match-v5 routing: americas (NA/BR/LAN/LAS), europe, asia (KR/JP), sea (OCE/...)
+  queue: RANKED_SOLO_5x5
+  tiers:                      # ladder tiers to seed players from ("TIER DIVISION", or apex tier alone)
+    - EMERALD I
+    - DIAMOND IV
+    - DIAMOND II
+    - MASTER
+  players_per_tier: 100
+  matches_per_player: 20
+  max_matches: 4000           # ~1.5 h with a development key (100 requests / 2 min)
+  matches_file: data/riot/matches.jsonl
+  seed: 0
+
+build:
+  patches: []                 # e.g. ["16.20", "16.21"]; empty = use every collected match
+  min_games: 40               # champions with fewer games are left out
+  role_share: 0.1             # a champion gets a role if >= 10% of its games are there
+  short_game_minutes: 25      # scaling = win rate in long games minus short games
+  long_game_minutes: 32
+  min_games_per_length: 15
+  issue_quantile: 0.15        # a team total in the bottom/top 15% of real teams counts as low/high
+
+data:
+  champions: data/champions.json   # built by `python -m lolcomp.riot.build_champions`
+  out_dir: data/generated
+  train_size: 3000
+  val_size: 300
+  seed: 42
+  # Hand-labeled comps, one {"team": {...}, "label": {...}} per line (see data/labeled/example.jsonl).
+  extra_train_files: []
+  extra_train_repeat: 3
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: all-linear
+
+train:
+  output_dir: outputs/gemma4-lolcomp
+  epochs: 2
+  learning_rate: 0.0002       # write as a decimal: PyYAML reads "2e-4" as a string
+  batch_size: 2
+  grad_accum: 8               # effective batch = batch_size * grad_accum
+  max_length: 1024
+  warmup_steps: 20
+  eval_steps: 100

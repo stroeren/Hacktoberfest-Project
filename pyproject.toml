@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lolcomp"
+version = "0.1.0"
+description = "Fine-tune Gemma 4 to evaluate League of Legends team compositions"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0", "requests>=2.31"]
+
+[project.optional-dependencies]
+# Install PyTorch with CUDA first (see README), then `pip install -e ".[train]"`.
+train = [
+    "transformers>=5.0",
+    "trl>=0.20",
+    "peft>=0.15",
+    "datasets>=3.0",
+    "accelerate>=1.0",
+    "bitsandbytes>=0.45",
+    "huggingface_hub>=0.30",
+]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

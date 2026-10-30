@@ -1,0 +1,38 @@
+# Tiny proof-of-concept run for machines without an NVIDIA GPU.
+#   python -m lolcomp.generate_data --config config.cpu.yaml
+#   python -m lolcomp.train --config config.cpu.yaml
+# Gemma 3 270M (~0.5 GB), full precision on CPU, a few hundred examples, one epoch.
+# Uses Unsloth's ungated copy of google/gemma-3-270m-it (no Hugging Face login needed).
+# The Gemma Terms of Use still apply: https://ai.google.dev/gemma/terms
+
+model:
+  base_model: unsloth/gemma-3-270m-it
+  load_in_4bit: false         # 4-bit quantization needs CUDA
+  attn_implementation: eager  # recommended by Google for training Gemma 3
+
+data:
+  champions: data/champions.json
+  out_dir: data/generated_cpu
+  train_size: 240
+  val_size: 20
+  seed: 42
+  extra_train_files: []
+  extra_train_repeat: 3
+
+lora:
+  r: 8
+  alpha: 16
+  dropout: 0.05
+  target_modules: all-linear
+
+train:
+  output_dir: outputs/gemma3-270m-cpu
+  epochs: 1
+  learning_rate: 0.0002
+  batch_size: 1
+  grad_accum: 8               # 240 examples / 8 = 30 optimizer steps
+  max_length: 768
+  warmup_steps: 3
+  eval_steps: 0               # skip mid-training eval to save time
+  logging_steps: 1
+  gradient_checkpointing: false  # plenty of RAM; checkpointing would add ~30% compute

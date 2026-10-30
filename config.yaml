@@ -4,7 +4,7 @@ model:
   base_model: google/gemma-4-E4B-it
   load_in_4bit: true          # QLoRA; set false if you have lots of VRAM
 
-riot:
+riot:                         # optional: only for rebuilding champions.json from Riot data (see README)
   # API key comes from the RIOT_API_KEY environment variable, never from this file.
   platform: na1               # na1, euw1, eun1, kr, br1, la1, la2, oc1, tr1, ru, jp1, ...
   region: americas            # match-v5 routing: americas (NA/BR/LAN/LAS), europe, asia (KR/JP), sea (OCE/...)
@@ -30,7 +30,7 @@ build:
   issue_quantile: 0.15        # a team total in the bottom/top 15% of real teams counts as low/high
 
 data:
-  champions: data/champions.json   # built by `python -m lolcomp.riot.build_champions`
+  champions: data/champions.json   # premade, hand-rated (optional: rebuild with lolcomp.riot.build_champions)
   out_dir: data/generated
   train_size: 3000
   val_size: 300

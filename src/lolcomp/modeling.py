@@ -7,20 +7,19 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 def compute_dtype() -> torch.dtype:
-    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
-        return torch.bfloat16
-    return torch.float16
+    if not torch.cuda.is_available():
+        return torch.float32  # most CPUs have no fast bf16/fp16 matmuls
+    return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
 
 def load_model(model_cfg: dict, adapter: str | None = None):
     """Load the base model from config, plus a trained LoRA adapter if given."""
-    if not torch.cuda.is_available():
-        raise SystemExit(
-            "No CUDA GPU found. Install a CUDA build of PyTorch (see README) or run on a GPU machine."
-        )
+    on_gpu = torch.cuda.is_available()
+    if not on_gpu:
+        print("No CUDA GPU found: running on CPU in float32. This is slow; use a small model (see config.cpu.yaml).")
 
     quant = None
-    if model_cfg.get("load_in_4bit", True):
+    if on_gpu and model_cfg.get("load_in_4bit", True):
         quant = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -33,7 +32,8 @@ def load_model(model_cfg: dict, adapter: str | None = None):
         model_cfg["base_model"],
         dtype=compute_dtype(),
         quantization_config=quant,
-        device_map="auto",
+        device_map="auto" if on_gpu else None,
+        attn_implementation=model_cfg.get("attn_implementation"),
     )
     if adapter:
         from peft import PeftModel

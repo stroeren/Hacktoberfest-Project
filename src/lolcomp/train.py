@@ -64,9 +64,12 @@ def main() -> None:
     )
 
     bf16 = compute_dtype() == torch.bfloat16
+    fp16 = compute_dtype() == torch.float16
+    eval_steps = train_cfg.get("eval_steps") or 0  # 0 = no mid-training eval/checkpoints (faster on CPU)
     sft_config = SFTConfig(
         output_dir=train_cfg["output_dir"],
         num_train_epochs=train_cfg["epochs"],
+        max_steps=train_cfg.get("max_steps", -1),
         learning_rate=train_cfg["learning_rate"],
         per_device_train_batch_size=train_cfg["batch_size"],
         per_device_eval_batch_size=train_cfg["batch_size"],
@@ -74,16 +77,16 @@ def main() -> None:
         max_length=train_cfg["max_length"],
         lr_scheduler_type="cosine",
         warmup_steps=train_cfg["warmup_steps"],
-        gradient_checkpointing=True,
+        gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
         bf16=bf16,
-        fp16=not bf16,
-        logging_steps=10,
-        eval_strategy="steps",
-        eval_steps=train_cfg["eval_steps"],
-        save_strategy="steps",
-        save_steps=train_cfg["eval_steps"],
+        fp16=fp16,
+        logging_steps=train_cfg.get("logging_steps", 10),
+        eval_strategy="steps" if eval_steps else "no",
+        eval_steps=eval_steps or 500,
+        save_strategy="steps" if eval_steps else "no",
+        save_steps=eval_steps or 500,
         save_total_limit=2,
-        load_best_model_at_end=True,
+        load_best_model_at_end=bool(eval_steps),
         report_to="none",
         seed=data_cfg["seed"],
     )
